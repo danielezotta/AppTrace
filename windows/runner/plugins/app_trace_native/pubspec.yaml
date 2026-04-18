@@ -1,0 +1,15 @@
+name: app_trace_native
+description: Native plugin for AppTrace - Windows activity tracking
+version: 1.0.0
+publish_to: 'none'
+
+environment:
+  sdk: ^3.0.0
+  flutter: ">=3.0.0"
+
+flutter:
+  plugin:
+    platforms:
+      windows:
+        pluginClass: AppTraceNativePlugin
+        fileName: app_trace_native_plugin.h
