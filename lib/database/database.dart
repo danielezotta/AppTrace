@@ -37,7 +37,7 @@ class DatabaseService {
     return await databaseFactory.openDatabase(
       dbPath,
       options: OpenDatabaseOptions(
-        version: 4,
+        version: 5,
         onCreate: _onCreate,
         onUpgrade: _onUpgrade,
       ),
@@ -133,6 +133,10 @@ class DatabaseService {
       'key': 'record_keystroke_content',
       'value': 'false',
     });
+    await db.insert('settings', {
+      'key': 'start_on_login',
+      'value': 'false',
+    });
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -151,6 +155,12 @@ class DatabaseService {
     if (oldVersion < 4) {
       // Fix unknown process names by extracting from executable_path
       await _fixUnknownProcessNames(db);
+    }
+    if (oldVersion < 5) {
+      await db.insert('settings', {
+        'key': 'start_on_login',
+        'value': 'false',
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
     }
   }
 

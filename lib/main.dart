@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
+import 'database/repository.dart';
+import 'services/startup_service.dart';
 import 'ui/screens/dashboard_screen.dart';
 import 'services/tray_service.dart';
+import 'services/window_close_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,6 +19,15 @@ void main() async {
   
   // Initialize tray
   await TrayService().initialize();
+
+  // Configure close button behavior (default: hide to tray)
+  await WindowCloseService().initialize();
+
+  // Apply startup behavior from persisted setting.
+  final repository = ActivityRepository();
+  final startupService = StartupService();
+  final startOnLogin = await repository.isStartOnLoginEnabled();
+  await startupService.syncWithSetting(startOnLogin);
   
   runApp(const MyApp());
 }

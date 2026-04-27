@@ -1,5 +1,7 @@
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
+import 'dart:io';
+import 'window_close_service.dart';
 
 class TrayService with TrayListener {
   static final TrayService _instance = TrayService._internal();
@@ -13,7 +15,27 @@ class TrayService with TrayListener {
 
   Future<void> initialize() async {
     trayManager.addListener(this);
+    await _setTrayIcon();
+    await trayManager.setToolTip('AppTrace');
     await _buildTrayMenu();
+  }
+
+  Future<void> _setTrayIcon() async {
+    final exeDir = File(Platform.resolvedExecutable).parent.path;
+    final iconCandidates = [
+      '$exeDir/data/flutter_assets/assets/icons/tray_icon.ico',
+      '$exeDir/resources/app_icon.ico',
+      File('windows/runner/resources/app_icon.ico').absolute.path,
+    ];
+
+    for (final iconPath in iconCandidates) {
+      if (!File(iconPath).existsSync()) {
+        continue;
+      }
+
+      await trayManager.setIcon(iconPath);
+      return;
+    }
   }
 
   Future<void> _buildTrayMenu() async {
@@ -59,7 +81,7 @@ class TrayService with TrayListener {
         _buildTrayMenu();
         break;
       case 'exit':
-        windowManager.destroy();
+        WindowCloseService().exitApp();
         break;
     }
   }

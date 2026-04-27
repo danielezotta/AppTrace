@@ -9,6 +9,8 @@ A Flutter desktop app that tracks your activity: which apps you use, for how lon
 - CSV export for reports
 - Pause/resume and app exclusions
 - Tray icon controls
+- Optional start-on-login toggle (Windows)
+- GitHub Releases update check + installer handoff (Windows)
 
 ## Tech Stack
 - Flutter desktop (UI)
@@ -22,6 +24,39 @@ flutter build windows           # Release EXE
 ```
 
 Output: `build\windows\runner\Release\`
+
+## Installer (Windows)
+Inno Setup script is included at `windows/installer/apptrace.iss`.
+Helper script is included at `windows/installer/build-installer.ps1`.
+
+Build installer with version from `pubspec.yaml` (script builds release first):
+```bash
+powershell -ExecutionPolicy Bypass -File windows\installer\build-installer.ps1
+```
+
+Optional (reuse existing release build without rebuilding Flutter):
+```bash
+powershell -ExecutionPolicy Bypass -File windows\installer\build-installer.ps1 -SkipFlutterBuild
+```
+
+Installer output: `build\installer\AppTraceSetup-<version>.exe`
+
+## Auto-Update (GitHub Releases)
+Set repo coordinates in `lib/config/update_config.dart`:
+
+- `githubOwner`
+- `githubRepo`
+
+When configured, app checks latest release on startup. If newer version exists, user can download and launch installer.
+
+## CI Release Workflow
+Workflow file: `.github/workflows/windows-release.yml`
+
+On GitHub release publish, workflow:
+- Builds Windows release
+- Zips portable bundle
+- Builds Inno Setup installer
+- Uploads both assets to release
 
 ## Prerequisites
 - Flutter SDK with desktop enabled

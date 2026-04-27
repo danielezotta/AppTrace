@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../services/activity_service.dart';
+import '../../services/update_service.dart';
 import '../../models/activity_event.dart';
+import '../../config/update_config.dart';
 import '../widgets/top_apps_widget.dart';
 import '../widgets/timeline_widget.dart';
 import '../widgets/controls_widget.dart';
@@ -22,6 +24,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoading = false;
   bool _isRecording = false;
   Timer? _refreshTimer;
+  bool _updatePromptShown = false;
 
   @override
   void initState() {
@@ -41,6 +44,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       // Load initial data
       await _loadData();
 
+      _checkForUpdates();
+
       // Set up auto-refresh for today's data every 5 seconds
       _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
         if (_isToday(_selectedDate)) {
@@ -57,6 +62,74 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _checkForUpdates() async {
+    if (!mounted || _updatePromptShown || !UpdateConfig.isConfigured) {
+      return;
+    }
+
+    try {
+      final updateService = UpdateService(
+        owner: UpdateConfig.githubOwner,
+        repository: UpdateConfig.githubRepo,
+      );
+
+      final updateInfo = await updateService.checkForUpdate();
+      if (!mounted || updateInfo == null) {
+        return;
+      }
+
+      _updatePromptShown = true;
+      final shouldInstall = await showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Update available'),
+            content: Text(
+              'Version ${updateInfo.latestVersion} is available. Install now?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Later'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Install'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (shouldInstall != true) {
+        return;
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Downloading update...')),
+        );
+      }
+
+      final installerFile = await updateService.downloadInstaller(updateInfo);
+      await updateService.launchInstaller(installerFile);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Installer started. Follow the setup wizard to update.'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Update check failed: $e')),
         );
       }
     }

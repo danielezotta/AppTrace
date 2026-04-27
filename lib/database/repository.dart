@@ -176,6 +176,24 @@ class ActivityRepository {
     await setSetting('is_recording', recording ? 'true' : 'false');
   }
 
+  Future<bool> isStartOnLoginEnabled() async {
+    final value = await getSetting('start_on_login');
+    return value == 'true';
+  }
+
+  Future<void> setStartOnLogin(bool enabled) async {
+    await setSetting('start_on_login', enabled ? 'true' : 'false');
+  }
+
+  Future<bool> isCloseToTrayEnabled() async {
+    final value = await getSetting('close_to_tray');
+    return value != 'false';
+  }
+
+  Future<void> setCloseToTrayEnabled(bool enabled) async {
+    await setSetting('close_to_tray', enabled ? 'true' : 'false');
+  }
+
   String _formatDate(DateTime date) {
     return '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }

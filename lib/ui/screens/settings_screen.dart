@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../database/repository.dart';
+import '../../services/startup_service.dart';
+import '../../services/window_close_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -10,15 +12,22 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final ActivityRepository _repository = ActivityRepository();
+  final StartupService _startupService = StartupService();
   List<Map<String, String>> _exclusions = [];
   final TextEditingController _processController = TextEditingController();
   final TextEditingController _windowTitleController = TextEditingController();
   String _selectedExclusionType = 'process';
+  bool _startOnLogin = false;
+  bool _isUpdatingStartOnLogin = false;
+  bool _closeToTray = true;
+  bool _isUpdatingCloseToTray = false;
 
   @override
   void initState() {
     super.initState();
     _loadExclusions();
+    _loadStartupSetting();
+    _loadCloseBehaviorSetting();
   }
 
   Future<void> _loadExclusions() async {
@@ -26,6 +35,112 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       _exclusions = exclusions;
     });
+  }
+
+  Future<void> _loadStartupSetting() async {
+    final enabled = await _repository.isStartOnLoginEnabled();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _startOnLogin = enabled;
+    });
+  }
+
+  Future<void> _toggleStartOnLogin(bool enabled) async {
+    if (_isUpdatingStartOnLogin) {
+      return;
+    }
+
+    setState(() {
+      _isUpdatingStartOnLogin = true;
+    });
+
+    try {
+      await _startupService.setEnabled(enabled);
+      await _repository.setStartOnLogin(enabled);
+
+      if (mounted) {
+        setState(() {
+          _startOnLogin = enabled;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              enabled
+                  ? 'Start on login enabled'
+                  : 'Start on login disabled',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUpdatingStartOnLogin = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadCloseBehaviorSetting() async {
+    final enabled = await _repository.isCloseToTrayEnabled();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _closeToTray = enabled;
+    });
+  }
+
+  Future<void> _toggleCloseToTray(bool enabled) async {
+    if (_isUpdatingCloseToTray) {
+      return;
+    }
+
+    setState(() {
+      _isUpdatingCloseToTray = true;
+    });
+
+    try {
+      await _repository.setCloseToTrayEnabled(enabled);
+      await WindowCloseService().refreshPreference();
+
+      if (mounted) {
+        setState(() {
+          _closeToTray = enabled;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              enabled
+                  ? 'Window close now hides to tray'
+                  : 'Window close now exits the app',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUpdatingCloseToTray = false;
+        });
+      }
+    }
   }
 
   Future<void> _addExclusion() async {
@@ -102,6 +217,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text(
+              'General',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 16),
+            Card(
+              child: SwitchListTile(
+                title: const Text('Start on login'),
+                subtitle: const Text(
+                  'Launch AppTrace automatically when you sign in to Windows',
+                ),
+                value: _startOnLogin,
+                onChanged: _isUpdatingStartOnLogin ? null : _toggleStartOnLogin,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              child: SwitchListTile(
+                title: const Text('Close to tray'),
+                subtitle: const Text(
+                  'If enabled, closing the window keeps AppTrace running in the tray',
+                ),
+                value: _closeToTray,
+                onChanged: _isUpdatingCloseToTray ? null : _toggleCloseToTray,
+              ),
+            ),
+            const SizedBox(height: 24),
+
             // Privacy section
             Text(
               'Privacy & Exclusions',

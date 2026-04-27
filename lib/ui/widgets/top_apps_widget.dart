@@ -157,12 +157,24 @@ class TopAppsWidget extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
-                    Text(
-                      '⌨️ ${app.keys} | 🖱️ ${app.mouseClicks} | 📜 ${app.mouseScrolls}',
-                      style: Theme.of(context).textTheme.bodySmall,
+                    _MetricChip(
+                      icon: Icons.keyboard_alt_outlined,
+                      label: '${app.keys}',
+                      tooltip: 'Total keystrokes detected while this app was active.',
+                    ),
+                    _MetricChip(
+                      icon: Icons.mouse_outlined,
+                      label: '${app.mouseClicks}',
+                      tooltip: 'Total mouse clicks detected while this app was active.',
+                    ),
+                    _MetricChip(
+                      icon: Icons.swap_vert,
+                      label: '${app.mouseScrolls}',
+                      tooltip: 'Total mouse wheel scroll steps detected while this app was active.',
                     ),
                   ],
                 ),
@@ -184,5 +196,44 @@ class TopAppsWidget extends StatelessWidget {
     } else {
       return '${minutes}m ${secs}s';
     }
+  }
+}
+
+class _MetricChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String tooltip;
+
+  const _MetricChip({
+    required this.icon,
+    required this.label,
+    required this.tooltip,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: tooltip,
+      waitDuration: const Duration(milliseconds: 250),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: colorScheme.onSurfaceVariant),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
